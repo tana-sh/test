@@ -76,14 +76,15 @@ onMounted(search)
   </header>
 
   <v-container class="search-container">
-    <v-card class="section-card mb-6" elevation="0" border rounded="lg">
-      <div class="section-heading">
-        <h2><v-icon icon="mdi-filter-outline" size="21" class="mr-2" />検索条件</h2>
-        <p>条件を入力して「検索」を押してください。</p>
-      </div>
-      <v-divider />
-      <v-card-text class="pa-5">
-        <v-form @submit.prevent="search">
+    <v-form class="mb-6" @submit.prevent="search">
+      <fieldset class="search-fieldset">
+        <legend class="search-legend">
+          <span class="d-inline-flex align-center">
+            <v-icon icon="mdi-filter-outline" size="21" class="mr-2" aria-hidden="true" />検索条件
+          </span>
+        </legend>
+        <div class="search-fields">
+          <p class="condition-help mb-5">条件を入力して「検索」を押してください。</p>
           <v-row>
             <v-col cols="12" md="6">
               <v-text-field v-model="criteria.keyword" label="キーワード" placeholder="管理番号・件名・担当者" prepend-inner-icon="mdi-magnify" clearable :disabled="loading" />
@@ -106,9 +107,9 @@ onMounted(search)
             </v-col>
           </v-row>
           <v-alert v-if="error" class="mt-4" type="error" variant="tonal" density="compact" role="alert">{{ error }}</v-alert>
-        </v-form>
-      </v-card-text>
-    </v-card>
+        </div>
+      </fieldset>
+    </v-form>
 
     <v-card class="section-card" elevation="0" border rounded="lg">
       <div class="section-heading results-heading">
