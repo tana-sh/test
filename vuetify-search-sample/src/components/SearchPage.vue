@@ -1,7 +1,8 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { categories, statuses } from '../data/records.js'
 import { emptyCriteria, searchRecords, validateCriteria } from '../services/search.js'
+import { bindCaptureShortcut, copyViewportToClipboard } from '../utils/capture.js'
 
 const criteria = reactive(emptyCriteria())
 const applied = ref(emptyCriteria())
@@ -58,7 +59,37 @@ function clear() {
   search()
 }
 
-onMounted(search)
+const copying = ref(false)
+const captureMessage = ref('')
+const captureFailed = ref(false)
+
+function copyScreen() {
+  if (loading.value || copying.value) return
+  captureMessage.value = ''
+  captureFailed.value = false
+  copying.value = true
+  // Do not await image generation here: clipboard.write must start on this tap/key press.
+  copyViewportToClipboard().then(() => {
+    captureMessage.value = '画面を画像としてコピーしました。貼り付け先でCtrl+Vなどを押してください。'
+  }).catch(error => {
+    captureFailed.value = true
+    captureMessage.value = error.name === 'NotAllowedError'
+      ? 'コピーが許可されませんでした。ページにフォーカスし、ブラウザのクリップボード権限を確認して再度お試しください。'
+      : error.message
+  }).finally(() => {
+    copying.value = false
+  })
+}
+
+let unbindCaptureShortcut
+onMounted(() => {
+  search()
+  unbindCaptureShortcut = bindCaptureShortcut(window, {
+    capture: copyScreen,
+    canCapture: () => !loading.value && !copying.value,
+  })
+})
+onBeforeUnmount(() => unbindCaptureShortcut?.())
 </script>
 
 <template>
@@ -71,11 +102,15 @@ onMounted(search)
           <h1>データ検索</h1>
         </div>
       </div>
-      <v-chip size="small" variant="outlined" color="primary">サンプルデータ</v-chip>
+      <div class="header-actions">
+        <v-chip class="sample-badge" size="small" variant="outlined" color="primary">サンプルデータ</v-chip>
+        <v-btn data-capture-ignore color="primary" variant="outlined" prepend-icon="mdi-content-copy" aria-keyshortcuts="F3" :disabled="loading" :loading="copying" @click="copyScreen">画面コピー（F3）</v-btn>
+      </div>
     </div>
   </header>
 
   <v-container class="search-container">
+    <v-alert v-if="captureMessage" data-capture-ignore class="mb-4" :type="captureFailed ? 'error' : 'success'" variant="tonal" density="compact" role="status" aria-live="polite">{{ captureMessage }}</v-alert>
     <v-form class="mb-6" @submit.prevent="search">
       <fieldset class="search-fieldset">
         <legend class="search-legend">
